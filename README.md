@@ -1,6 +1,6 @@
 # Description
 
-The project consists of two models. The impatient reader model in ref[1] comprehends very long articles and a related question. A cosine similarity cost model from ref[5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
+The project consists of two models. The impatient reader model in [1] comprehends very long articles and a related question. A cosine similarity cost model from [5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
 
 The training set consists of a context, a question, and four multiple choices, with only one of them is true. Context was splitted into sentences, embedded into a vector with the question. The embedded vector and choices are later calculated using cosine similarity. The non-supervisual target is to minimize cosine cost.
 
