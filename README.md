@@ -1,10 +1,10 @@
 # Description
 
-The project consists of two models. The impatient reader model in ref[1] comprehends very long articles and a related question. A cosine similarity cost model from ref[5]. I implemented them in [TensorFlow](https://github.com/tensorflow/tensorflow).
+The project consists of two models. The impatient reader model in ref[1] comprehends very long articles and a related question. A cosine similarity cost model from ref[5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow).
 
-The training set consists of: context, question, and four multiple choices, with only one of them is true. Context was splitted into sentences, embedded into a vector with the question. The embedded vector and choices are later calculated using cosine similarity. The non-supervisual target is to minimize cosine cost.
+The training set consists of: a context, a question, and four multiple choices, with only one of them is true. Context was splitted into sentences, embedded into a vector with the question. The embedded vector and choices are later calculated using cosine similarity. The non-supervisual target is to minimize cosine cost.
 
-Instead of simply solving [cloze-like question](https://en.wikipedia.org/wiki/Cloze_test), the model can comprehend both article and a related question, and choose the best answer from a list of candidates.
+Instead of simply solving [cloze-like questions](https://en.wikipedia.org/wiki/Cloze_test), the model can comprehend both article and the related question, and choose the best answer from a list of candidates.
 
 ```shell
 python3 train.py
@@ -25,14 +25,10 @@ python3 train.py
 }
 ```
 
-# Design
-
-![Algorithm](tf_algorithm.png)
-
 # Similar Works
 
 - [AllienAI](https://github.com/tambetm/allenAI), the problem they solved did not have a context.
-- [Attentive Reader(tensorflow)](https://github.com/carpedm20/attentive-reader-tensorflow), they don't have real question and multiple choices, the project is deprecated. The problem they solved was cloze-like.
+- [Attentive Reader(tensorflow)](https://github.com/carpedm20/attentive-reader-tensorflow), the problem they solved was cloze-like, the project is deprecated.
 
 # References
 
@@ -43,3 +39,7 @@ python3 train.py
 5. [LSTM-Based Deep Learning Models For Nonfactoid Answer Selection](https://arxiv.org/pdf/1511.04108v4.pdf) (*)
 6. [Official Tensorflow Tutorials](https://www.tensorflow.org/versions/r0.12/tutorials/index.html)
 7. [Tensorflow Doc(中文)](http://wiki.jikexueyuan.com/project/tensorflow-zh/get_started/basic_usage.html)
+
+# Design
+
+![Algorithm](tf_algorithm.png)
