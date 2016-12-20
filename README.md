@@ -8,6 +8,10 @@ The training set was chosen from TOEFL, consists of: context (up to 6000 words),
 python3 train.py
 ```
 
+# Design
+
+![Algorithm](tf_algorithm.png)
+
 # References
 
 - [DeepMind: Teaching Machines to Read and Comprehend](https://github.com/thomasmesnard/DeepMind-Teaching-Machines-to-Read-and-Comprehend)
