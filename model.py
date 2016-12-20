@@ -16,11 +16,12 @@ def lazy_property(function):
     return wrapper
 
 class GRUModel:
-    def __init__(self, ic, iq, ir, iw, dropout, num_hidden=400, num_layers=3):
+    def __init__(self, ic, iq, ir, iw, state, dropout, num_hidden=400, num_layers=3):
         self.ic = ic # Input_c: context
         self.iq = iq # Input_q: question
         self.ir = ir # Input_r: right answer
         self.iw = iw # Input_w: wrong answer
+        self.state = state # Encoded context & question from previous step
         self.dropout = dropout
         self._num_hidden = num_hidden
         self._num_layers = num_layers
@@ -33,6 +34,7 @@ class GRUModel:
         '''return embedded context & question vector, merged into one output'''
         self.cell = tf.nn.rnn_cell.GRUCell(self._num_hidden)
         self.network = tf.nn.rnn_cell.MultiRNNCell([self.cell] * self._num_layers)
+        # embed context & question
         with tf.variable_scope('iq'):
             oq, _ = tf.nn.dynamic_rnn(self.network, self.iq, dtype=tf.float32)
             oq = tf.transpose(oq, [1, 0, 2])
@@ -48,7 +50,7 @@ class GRUModel:
         return lq + tf.matmul(lc,  weight) + bias
 
     @lazy_property
-    def encode_answer(self):
+    def answer(self):
         '''return embedded right & wrong answer respectively'''
         self.cell = tf.nn.rnn_cell.GRUCell(self._num_hidden)
         self.network = tf.nn.rnn_cell.MultiRNNCell([self.cell] * self._num_layers)
@@ -66,8 +68,8 @@ class GRUModel:
     @lazy_property
     def cosine_cost(self):
         '''cosine distance as cost function'''
-        emb = self.prediction
-        r,w = self.encode_answer
+        emb = self.state
+        r,w = self.answer
         return tf.reduce_mean(tf.maximum(0., MARGIN - self.cos_sim(emb, r) + self.cos_sim(emb, w)))
 
     @lazy_property
@@ -87,7 +89,7 @@ class GRUModel:
             return tf.div(x, norm)
         x = l2_norm(x); y = l2_norm(y)
         # return tf.reduce_sum(tf.matmul(x, y, transpose_b=True))
-        return tf.reduce_sum(tf.mul(x, y))
+        return tf.reduce_sum(tf.mul(x, y)) * 10
 
     @staticmethod
     def _weight_and_bias(in_size, out_size):
