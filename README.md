@@ -1,10 +1,10 @@
 # Description
 
-Read articles and make multiple choices now can be done with machine. The project consists of two models. The impatient reader model in [1] comprehends very long articles and a related question. A cosine similarity cost model from [5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
+[Failed project, but you can read furthur for why]. Read articles and make multiple choices now can be done with machine. The project consists of two models. The impatient reader model in [1] comprehends very long articles and a related question. A cosine similarity cost model from [5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
 
 The training set consists of a context, a question, and four multiple choices, with only one of them is true. Context was splitted into sentences, embedded into a vector with the question. The embedded vector and choices are later calculated using cosine similarity. The non-supervisual target is to minimize cosine cost.
 
-Instead of simply solving [cloze-like questions](https://en.wikipedia.org/wiki/Cloze_test), the model can comprehend both article and a related question, and choose the best answer from a list of candidates.
+Instead of simply solving [cloze-like questions](https://en.wikipedia.org/wiki/Cloze_test), the model can comprehend both article and a related question, and choose the best answer from a list of candidates. But the project compared to real research project like [bidirectional attetion flow for machine comprehension](https://arxiv.org/pdf/1611.01603v3.pdf), we lack the deep-lstm decoder, and we lack word embeddings (they have over 400x400 vectors for each word, we have 400xn cells for a sentence!), and we only used one encoder for context and question while they have two (from context to question, and from question to context).
 
 ```shell
 python3 train.py # 2.7 goes well too
