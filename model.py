@@ -1,8 +1,10 @@
 import functools
+import os
 import sets
 import tensorflow as tf
 
-MARGIN = 200
+from config import *
+MARGIN = batch_size * 2 + 0.2
 
 def lazy_property(function):
     attribute = '_' + function.__name__
@@ -68,9 +70,9 @@ class GRUModel:
     @lazy_property
     def cosine_cost(self):
         '''cosine distance as cost function'''
-        emb = self.state
-        r,w = self.answer
-        return tf.reduce_mean(tf.maximum(0., MARGIN - self.cos_sim(emb, r) + self.cos_sim(emb, w)))
+        r, w = self.answer
+        return tf.reduce_mean(tf.maximum( # normailize with batch_size so don't have to change learning rate 
+            0., MARGIN - self.cos_sim(self.state, r) + self.cos_sim(self.state, w))) / batch_size * 10
 
     @lazy_property
     def optimize(self):
@@ -79,7 +81,9 @@ class GRUModel:
 
     @lazy_property
     def evaluate(self):
-        return self.cosine_cost
+        '''evaluate cosine similarity of an answer option'''
+        option, _ = self.answer # use right answer's weights
+        return self.cos_sim(self.state, option)
 
     def cos_sim(self, x, y):
         '''cosine similarity between 2D tensors x, y, both shape [n x m]'''
@@ -88,11 +92,36 @@ class GRUModel:
             norm = tf.sqrt(tf.reduce_sum(tf.square(x), keep_dims=True, reduction_indices=1))
             return tf.div(x, norm)
         x = l2_norm(x); y = l2_norm(y)
-        # return tf.reduce_sum(tf.matmul(x, y, transpose_b=True))
-        return tf.reduce_sum(tf.mul(x, y)) * 10
+        return tf.reduce_sum(tf.mul(x, y))
 
     @staticmethod
     def _weight_and_bias(in_size, out_size):
         weight = tf.truncated_normal([in_size, out_size], stddev=0.01)
         bias = tf.constant(0.1, shape=[out_size])
         return tf.Variable(weight), tf.Variable(bias)
+
+    def save(self, sess, save_dir, dataset):
+        self.saver = tf.train.Saver()
+        print(" [*] Saving checkpoints (%s)..." % dataset)
+        save_dir = os.path.join(save_dir, dataset)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        self.saver.save(sess, 
+            os.path.join(save_dir, dataset))
+        print(" [*] Checkpoints saved...")
+
+    def load(self, sess, save_dir, dataset):
+        self.saver = tf.train.Saver()
+
+        print(" [*] Loading checkpoints (%s)..." % dataset)
+        save_dir = os.path.join(save_dir, dataset)
+
+        ckpt = tf.train.get_checkpoint_state(save_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+            self.saver.restore(sess, os.path.join(save_dir, ckpt_name))
+            print(" [*] Checkpoints loaded...")
+            return True
+        else:
+            print(" [*] Checkpoints load failed...")
+            return False
