@@ -82,8 +82,8 @@ class GRUModel:
     @lazy_property
     def evaluate(self):
         '''evaluate cosine similarity of an answer option'''
-        option, _ = self.answer # use right answer's weights
-        return self.cos_sim(self.state, option)
+        opt1, opt2 = self.answer
+        return self.cos_sim(self.state, opt1) - self.cos_sim(self.state, opt2)
 
     def cos_sim(self, x, y):
         '''cosine similarity between 2D tensors x, y, both shape [n x m]'''

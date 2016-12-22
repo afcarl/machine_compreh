@@ -59,7 +59,7 @@ dropout = tf.placeholder(tf.float32, name="dropout")
 
 zero_input = [np.random.randn(1, max_len) for _ in range(batch_size)]
 zero_state = [np.random.randn(max_len) for _ in range(batch_size)]
-costs, sims = [], []
+costs = []
 
 sess = tf.Session()
 model = GRUModel(input_c, input_q, input_r, input_w, state, dropout, num_hidden=max_len)
@@ -107,12 +107,13 @@ for epoch in range(len(test_data)):
         input_c: zero_input, input_q: zero_input, input_r: batch_ir, input_w: batch_iw, state: batch_enc[0], dropout: 1})
     costs.append(error)
     # evaluate chioces
+    sims = []
     for x in (batch_ans1, batch_ans2, batch_ans3, batch_ans4):
         sims.append(sess.run(model.evaluate, {
-            input_c: zero_input, input_q: zero_input, input_r: x, input_w: zero_input, state: batch_enc[0], dropout: 1}))
+            input_c: zero_input, input_q: zero_input, input_r: x, input_w: x, state: batch_enc[0], dropout: 1}))
     best_ans = sims.index(min(sims))
     true_ans = truths[idx]
     if best_ans == int(true_ans):
         num_correct += 1
-    print('Question {:3d} cosine cost: {:2.5f}, mean cost: {:2.5f}. guess: {:d}, true: {:d}, correct rate: {:1.3f}'.format(
-        epoch + 1, error, sum(costs) / len(costs), best_ans, true_ans, num_correct / (epoch + 1)))
+    print('Question {:3d} cosine cost: {:2.5f}, mean cost: {:2.5f}. guess: {:d}, true: {:d}, correct rate: {:3.1f}%'.format(
+        epoch + 1, error, sum(costs) / len(costs), best_ans, true_ans, num_correct / (epoch + 1) * 100))
