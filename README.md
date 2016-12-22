@@ -33,7 +33,7 @@ python3 test.py
 
 # Results
 
-I trained the model on my laptop for one hour with default setups and achieved 35% correct rate.
+Trained with default setups and best achieved 35% correct rate.
 
 ![Costs](./docs/cosine_cost.png)
 
