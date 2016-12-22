@@ -33,7 +33,7 @@ python3 test.py
 
 # Evaluation
 
-Trained with default setups and best achieved 35% correct rate. This didn't overperform even [Logistic Regression Baseline](https://rajpurkar.github.io/SQuAD-explorer/) which scores 40.4% correct rate. I wasn't aware of the state-of-art models until I finished this project. The problem for our project is that we encoded sentences instead of with finer grains (usually are word-level).
+Trained with default setups and best achieved 35% correct rate. This didn't overperform even [Logistic Regression Baseline](https://rajpurkar.github.io/SQuAD-explorer/) which scores 40.4% correct rate. I wasn't aware of the state-of-art models until I finished this project. The problem for our project is that we encoded sentences instead of with finer grains (usually are word-level). And I think cosine similarity is too simple for classification, since even the logistic regression baseline used 180 million features, which is hard to imagine can be handled by a shallow model.
 
 ![Costs](./docs/cosine_cost.png)
 
