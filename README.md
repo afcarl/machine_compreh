@@ -31,9 +31,9 @@ python3 test.py
 - [AllienAI](https://github.com/tambetm/allenAI), the problem they solved did not have a context.
 - [Attentive Reader(tensorflow)](https://github.com/carpedm20/attentive-reader-tensorflow), the problem they solved was cloze-like, the project is deprecated.
 
-# Results
+# Evaluation
 
-Trained with default setups and best achieved 35% correct rate.
+Trained with default setups and best achieved 35% correct rate. This didn't overperform even [Logistic Regression Baseline](https://rajpurkar.github.io/SQuAD-explorer/) which scores 40.4% correct rate. I wasn't aware of the state-of-art models until I finished this project. The problem for our project is that we encoded sentences instead of with finer grains (usually are word-level).
 
 ![Costs](./docs/cosine_cost.png)
 
