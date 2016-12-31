@@ -108,6 +108,7 @@ try: sess.run(tf.global_variables_initializer())
 except: sess.run(tf.initialize_all_variables())
 print("Initialized. Start training...")
 
+
 try:
     costs = []
     for epoch in range(max_epoch):
@@ -140,8 +141,8 @@ try:
             # evaluate on training data
             if (i + 1) % 100 == 0:
                 error = sess.run(model.cosine_cost, {
-                    input_c: batch_zero_input,
-                    input_q: batch_zero_input,
+                    input_c: batch_zero_parah,
+                    input_q: batch_zero_parah,
                     input_r: batch_ir,
                     input_w: batch_iw,
                     state: batch_cq,
@@ -149,9 +150,9 @@ try:
                 })
                 costs.append(error)
                 print('=> cosine cost {:3.5f}, mean cost: {:3.5f}'.format(error, sum(costs) / len(costs)))
-        # autosave
-        if (epoch + 1) % 10 == 0:
-            model.save(sess, save_dir='save', dataset=dataset)
+            # autosave
+            if (i + 1) % 1000 == 0:
+                model.save(sess, save_dir='save', dataset=dataset)
 
 except KeyboardInterrupt:
     pass
