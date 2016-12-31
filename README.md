@@ -1,6 +1,6 @@
 # Description
 
-[Failed project, but you can read furthur for why]. Read articles and make multiple choices now can be done with machine. The project consists of two models. The impatient reader model in [1] comprehends very long articles and a related question. A cosine similarity cost model from [5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
+Read articles and make multiple choices now can be done with machine. The project consists of two models. The impatient reader model in [1] comprehends very long articles and a related question. A cosine similarity cost model from [5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
 
 The training set consists of a context, a question, and four multiple choices, with only one of them is true. Context was splitted into sentences, embedded into a vector with the question. The embedded vector and choices are later calculated using cosine similarity. The non-supervisual target is to minimize cosine cost.
 
@@ -36,6 +36,8 @@ python3 test.py
 Trained with default setups and best achieved 35% correct rate. This didn't overperform even [Logistic Regression Baseline](https://rajpurkar.github.io/SQuAD-explorer/) which scores 40.4% correct rate. I wasn't aware of the state-of-art models until I finished this project. The problem for our project is that we encoded sentences instead of with finer grains (usually are word-level). And I think cosine similarity is too simple for classification, since even the logistic regression baseline used 180 million features, which is hard to imagine can be handled by a shallow model.
 
 ![Costs](./docs/cosine_cost.png)
+
+I improved the model with glove word embeddings, result has not been studied.
 
 # References
 
