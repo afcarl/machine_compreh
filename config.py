@@ -1,4 +1,5 @@
-batch_size = 32
-drop_prob = 0.2
-max_epoch = 500
+batch_size = 30
+drop_prob = 0
+max_epoch = 10
 dataset = 'squad'
+#dataset = 'qa'

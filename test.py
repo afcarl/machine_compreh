@@ -10,39 +10,29 @@ from tensorflow.contrib import learn
 from config import *
 
 print("Restoring Vocab...")
-test_data = preprocess.train_data(dataset)
-# 1/10 for testing
-idx = np.random.randint(len(test_data[0]), size=int(len(test_data[0])/10))
-qq, ll, cc, aa = zip(*[[test_data[0][i], test_data[1][i], test_data[2][i], test_data[3][i]] for i in idx])
+test_data = preprocess.test_data(dataset)
 c = [y for x in test_data[2] for y in x]
-max_len = max([len(x) for x in c])
+max_len = max([len(x) for x in c], 374)
 vocab = learn.preprocessing.VocabularyProcessor(max_len)
-vocab.restore('save/vocab.pkl')
+vocab.fit(c)
 
-truths = aa
+qq, ll, cc = zip(*[[test_data[0][i], test_data[1][i], test_data[2][i]] for i in range(len(test_data[0]))])
 
 print("Converting text to data...")
 train_q = preprocess.build_vocab(qq, vocab)
 train_c = [preprocess.build_vocab(x, vocab) for x in cc]
 train_l = [preprocess.build_vocab(x, vocab) for x in ll]
-train_a = [train_l[i][x-1] for i, x in enumerate(aa)]
 
 def generate_dataset():
     result = []
     for i, c in enumerate(train_c):
-        r = train_a[i]
         q = train_q[i]
         chioces = train_l[i]
-        for w in train_l[i]:
-            if (r == w).all():
-                continue
-            result.append([c, q, r, w, truths[i]])
-    return [[y, x[1], x[2], x[3], x[0], chioces, x[4]] for x in result for y in x[0]]
+        result.append([c, q, train_l[i]])
+    return result
 
 test_data = generate_dataset()
-idx = np.random.randint(len(test_data), size=len(qq))
-test_data = [test_data[i] for i in idx]
-ic, iq, ir, iw, ic_sents, chioces, truths = zip(*test_data)
+ic_sents, iq, chioces = zip(*test_data)
 
 print(" [*] Max sentence length: {:d}".format(max_len))
 print(" [*] Vocabulary Size: {:d}".format(len(vocab.vocabulary_)))
@@ -82,14 +72,13 @@ def encode(c_batch, q_batch):
 # ==================================================
 num_correct = 0
 
+f = open('answer.txt', 'w+')
+
 print("Running Model...")
 for epoch in range(len(test_data)):
-
-    idx = np.random.randint(len(test_data))
+    idx = epoch
     # generate batches
     batch_iq = [[iq[idx]]] * batch_size
-    batch_ir = [[ir[idx]]] * batch_size
-    batch_iw = [[iw[idx]]] * batch_size
     # batch_answers
     answers = chioces[idx]
     batch_ans1 = [[answers[0]]] * batch_size
@@ -102,18 +91,11 @@ for epoch in range(len(test_data)):
     # encode context & question for all context sentences
     batch_enc = encode(c_batch, batch_iq)
 
-    # evaluate on training data
-    error = sess.run(model.cosine_cost, {
-        input_c: zero_input, input_q: zero_input, input_r: batch_ir, input_w: batch_iw, state: batch_enc[0], dropout: 1})
-    costs.append(error)
-    # evaluate chioces
     sims = []
     for x in (batch_ans1, batch_ans2, batch_ans3, batch_ans4):
-        sims.append(sess.run(model.evaluate, {
+        sims.append(sess.run(model.cosine_cost, {
             input_c: zero_input, input_q: zero_input, input_r: x, input_w: x, state: batch_enc[0], dropout: 1}))
     best_ans = sims.index(min(sims))
-    true_ans = truths[idx]
-    if best_ans == int(true_ans):
-        num_correct += 1
-    print('Question {:3d} cosine cost: {:2.5f}, mean cost: {:2.5f}. guess: {:d}, true: {:d}, correct rate: {:3.1f}%'.format(
-        epoch + 1, error, sum(costs) / len(costs), best_ans, true_ans, num_correct / (epoch + 1) * 100))
+    f.write("%d\n" % best_ans)
+
+f.close()
