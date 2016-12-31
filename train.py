@@ -61,28 +61,12 @@ zero_parah = np.random.randn(1, row_size)
 zero_input = np.random.randn(ans_len, row_size)
 zero_state = np.random.randn(row_size)
 
-# print('Running Model...')
-# sess = tf.Session()
-# sess.run(tf.initialize_all_variables())
-
 def create_batch(tensor, batch_size):
     return [tensor] * batch_size
 
 batch_zero_parah = create_batch(zero_parah, batch_size)
 batch_zero_input = create_batch(zero_input, batch_size)
 batch_zero_state = create_batch(zero_state, batch_size)
-
-# print('Batch generated...')
-
-# sess.run(model.prediction, {
-#     input_c: batch_zero_parah,
-#     input_q: batch_zero_parah,
-#     input_r: batch_zero_input,
-#     input_w: batch_zero_input,
-#     state: batch_zero_state,
-#     dropout: 0
-# })
-# print('Done.')
 
 def pad_zero(vv, max_len):
     if max_len < len(vv):
@@ -124,13 +108,6 @@ try: sess.run(tf.global_variables_initializer())
 except: sess.run(tf.initialize_all_variables())
 print("Initialized. Start training...")
 
-
-# def shape(lst):
-#     try:
-#         return len(lst), len(lst[0]), len(lst[0][0])
-#     except:
-#         return len(lst), len(lst[0])
-
 try:
     costs = []
     for epoch in range(max_epoch):
@@ -152,12 +129,6 @@ try:
             for opt in vl[i]:
                 if opt != va[i]:
                     batch_iw = create_batch(opt, batch_size)
-                    # print('ic:', shape(batch_zero_parah), input_c.get_shape())
-                    # print('iq:', shape(batch_zero_parah), input_q.get_shape())
-                    # print('ir:', shape(batch_ir), input_r.get_shape())
-                    # print('iw:', shape(batch_iw), input_w.get_shape())
-                    # print('state:', shape(batch_cq), state.get_shape())
-                    # raise
                     sess.run(model.optimize, {
                         input_c: batch_zero_parah,
                         input_q: batch_zero_parah,
