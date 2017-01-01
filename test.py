@@ -1,101 +1,118 @@
 # ==================================================
-# Load and test a trained model on Traing Set.
+# Load and test a trained model on Testing Set.
 # ==================================================
 import tensorflow as tf
 import numpy as np
 import preprocess
 from model import GRUModel
 from tensorflow.contrib import learn
+from tqdm import tqdm
 
 from config import *
 
-print("Restoring Vocab...")
-test_data = preprocess.test_data(dataset)
-c = [y for x in test_data[2] for y in x]
-max_len = max([len(x) for x in c], 374)
-vocab = learn.preprocessing.VocabularyProcessor(max_len)
-vocab.fit(c)
+print("Loading text data...")
+qq, ll, cc = preprocess.test_data(dataset)
 
-qq, ll, cc = zip(*[[test_data[0][i], test_data[1][i], test_data[2][i]] for i in range(len(test_data[0]))])
+words = preprocess.unique_words([cc, qq])
+print('= Unique words: {:d}'.format(len(words)))
 
-print("Converting text to data...")
-train_q = preprocess.build_vocab(qq, vocab)
-train_c = [preprocess.build_vocab(x, vocab) for x in cc]
-train_l = [preprocess.build_vocab(x, vocab) for x in ll]
+vec = preprocess.read_glove(words) # {key: word_vec}
+print('= Found vectors: {:d}'.format(len(vec)))
 
-def generate_dataset():
-    result = []
-    for i, c in enumerate(train_c):
-        q = train_q[i]
-        chioces = train_l[i]
-        result.append([c, q, train_l[i]])
-    return result
+vec_len = len(vec['the'])
+print('= Vec len: {:d}'.format(vec_len))
 
-test_data = generate_dataset()
-ic_sents, iq, chioces = zip(*test_data)
+print("Text to vec...")
+vq = [preprocess.text2vec(x, vec) for x in qq] # [[vec, ..], [vec, ...], ...], each [vec, ...] is a sentence
+vc = [preprocess.text2vec(x, vec) for x in cc] # [[vec, ..], [vec, ...], ...], each [vec, ...] is a paragraph
+vl = [[preprocess.text2vec(y, vec) for y in x] for x in ll] # [[vec, ..], [vec, ...], [vec, ...], [vec, ...]]
 
-print(" [*] Max sentence length: {:d}".format(max_len))
-print(" [*] Vocabulary Size: {:d}".format(len(vocab.vocabulary_)))
-print(" [*] Test Question Size: {:d}".format(len(test_data)))
+max_len = max([len(x) for x in vc])
+set_len = len(vc)
+print('= Max len: {:d}'.format(max_len))
+
+del qq, ll, cc, words
+
+print('= Max sentence length: {:d}'.format(max_len))
+print('= Train Question Size: {:d}'.format(set_len))
 
 # ==================================================
-print("Restoring Model...")
-input_c = tf.placeholder(tf.float32, [None, 1, max_len], name="ic")
-input_q = tf.placeholder(tf.float32, [None, 1, max_len], name="iq")
-input_r = tf.placeholder(tf.float32, [None, 1, max_len], name="ir")
-input_w = tf.placeholder(tf.float32, [None, 1, max_len], name="iw")
-state = tf.placeholder(tf.float32, [None, max_len], name="state")
+print("Rstoring Model...")
+va = [y for x in vl for y in x]
+row_size, ans_len = vec_len, max([len(x) for x in va])
+input_c = tf.placeholder(tf.float32, [None, 1, row_size], name="ic") # word of vc
+input_q = tf.placeholder(tf.float32, [None, 1, row_size], name="iq") # word of vq
+input_r = tf.placeholder(tf.float32, [None, ans_len, row_size], name="ir")
+input_w = tf.placeholder(tf.float32, [None, ans_len, row_size], name="iw")
+state = tf.placeholder(tf.float32, [None, row_size], name="state")
 dropout = tf.placeholder(tf.float32, name="dropout")
 
-zero_input = [np.random.randn(1, max_len) for _ in range(batch_size)]
-zero_state = [np.random.randn(max_len) for _ in range(batch_size)]
+zero_parah = np.random.randn(1, row_size)
+zero_input = np.random.randn(ans_len, row_size)
+zero_state = np.random.randn(row_size)
+
+def create_batch(tensor, batch_size):
+    return [tensor] * batch_size
+
+batch_zero_parah = create_batch(zero_parah, batch_size)
+batch_zero_input = create_batch(zero_input, batch_size)
+batch_zero_state = create_batch(zero_state, batch_size)
+
 costs = []
 
 sess = tf.Session()
-model = GRUModel(input_c, input_q, input_r, input_w, state, dropout, num_hidden=max_len)
+model = GRUModel(input_c, input_q, input_r, input_w, state, dropout, num_hidden=vec_len)
 model.load(sess, save_dir='save', dataset=dataset)
 
 # ==================================================
-def encode(c_batch, q_batch):
-    def merge(article, question):
-        prev = zero_state
-        for sent in article:
+def encode(v, q):
+    prev = batch_zero_state
+    for x in q:
+        batch_q = create_batch([x], batch_size) # each word from vq
+        for y in v:
+            batch_w = create_batch([y], batch_size) # each word from vc
             prev = sess.run(model.prediction, {
-                input_c: [sent],
-                input_q: [question],
-                input_r: zero_input, input_w: zero_input, state: prev, dropout: 0})
-            return prev
-    assert len(c_batch) == len(q_batch), "Must input same bacth size of context and question"
-    encode_batch = [merge(c, q) for c, q in zip(c_batch, q_batch)]
-    return encode_batch
+                input_c: batch_w,
+                input_q: batch_q,
+                input_r: batch_zero_input,
+                input_w: batch_zero_input,
+                state: batch_zero_state,
+                dropout: 0
+            })
+    return prev
+
+def pad_zero(vv, max_len):
+    if max_len < len(vv):
+        return vv
+    vv += [[0] * vec_len] * (max_len - len(vv))
+    return vv
+
+vl = [[pad_zero(y, ans_len) for y in x] for x in vl]
+
 
 # ==================================================
-num_correct = 0
+print('Running Model...')
+print('= Drop Probability: %f' % drop_prob)
+print('= Batch Size: %d' % batch_size)
+print('= Max Epoch: %d' % max_epoch)
 
 f = open('answer.txt', 'w+')
 
-print("Running Model...")
-for epoch in range(len(test_data)):
-    idx = epoch
-    # generate batches
-    batch_iq = [[iq[idx]]] * batch_size
-    # batch_answers
-    answers = chioces[idx]
-    batch_ans1 = [[answers[0]]] * batch_size
-    batch_ans2 = [[answers[1]]] * batch_size
-    batch_ans3 = [[answers[2]]] * batch_size
-    batch_ans4 = [[answers[3]]] * batch_size
-    # batch_context
-    c_batch = [ic_sents[idx]] * batch_size
-    c_batch = [[[y] for y in x] for x in c_batch]
-    # encode context & question for all context sentences
-    batch_enc = encode(c_batch, batch_iq)
-
+for i in tqdm(range(set_len)):
     sims = []
-    for x in (batch_ans1, batch_ans2, batch_ans3, batch_ans4):
-        sims.append(sess.run(model.cosine_cost, {
-            input_c: zero_input, input_q: zero_input, input_r: x, input_w: x, state: batch_enc[0], dropout: 1}))
-    best_ans = sims.index(min(sims))
+    batch_cq = encode(vc[i], vq[i])
+
+    for va in vl[i]:
+        batch_ir = create_batch(va, batch_size)
+        sims.append(sess.run(model.evaluate, {
+            input_c: batch_zero_parah,
+            input_q: batch_zero_parah,
+            input_r: batch_ir,
+            input_w: batch_ir,
+            state: batch_cq,
+            dropout: 1
+        }))
+    best_ans = sims.index(max(sims))
     f.write("%d\n" % best_ans)
 
 f.close()

@@ -2,7 +2,6 @@ import json
 import os
 import re
 import pickle as pkl
-import numpy as np
 from tensorflow.contrib import learn
 import collections
 
@@ -36,14 +35,6 @@ def train_data(name='squad'):
     aa = [x.a() for x in sents]
     return qq, ll, cc, aa
 
-# Transform text sentences to sequence of ids with padding zeros
-# def build_vocab(text, processor=None):
-#     assert isinstance(text, collections.Iterable), "Must be iterable"
-#     if not processor:
-#         assert os.path.isfile('save/vocab.pkl'), 'save/vocab.pkl not found!'
-#         processor = learn.preprocessing.VocabularyProcessor.restore('save/vocab.pkl')
-#     return np.array(list(processor.fit_transform(text)))
-
 def text2vec(sent, vec_dict):
     words = sent.split()
     zero_v = [0] * len(vec_dict['the'])
@@ -75,7 +66,7 @@ class Sentence(object):
 
 def read_glove(words):
     vec = {}
-    with open(os.getenv('HOME') + '/data/glove/glove.6B.300d.txt') as f:
+    with open(os.getenv('HOME') + '/data/glove/glove.6B.50d.txt') as f:
         for x in f.readlines():
             vv = x.split()
             if vv[0] in words:

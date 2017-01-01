@@ -1,21 +1,14 @@
-# =================================================
-# Start training a completely new model.
-# And save it after Ctrl-C.
+# ==================================================
+# Load and test a trained model on Traing Set.
 # ==================================================
 import tensorflow as tf
 import numpy as np
 import preprocess
 from model import GRUModel
 from tensorflow.contrib import learn
-from tqdm import tqdm
 
 from config import *
 
-import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
-
-# Data Preparatopn
-# ==================================================
 print("Loading text data...")
 qq, ll, cc, aa = preprocess.train_data(dataset)
 
@@ -38,14 +31,14 @@ max_len = max([len(x) for x in vc])
 set_len = len(vc)
 print('= Max len: {:d}'.format(max_len))
 
-del qq, ll, cc, aa, words
+del qq, ll, cc, words
 
 print('= Max sentence length: {:d}'.format(max_len))
 print('= Train Question Size: {:d}'.format(set_len))
 
-# Build Model
 # ==================================================
-print("Building Model...")
+print("Rstoring Model...")
+va = [y for x in vl for y in x]
 row_size, ans_len = vec_len, max([len(x) for x in va])
 input_c = tf.placeholder(tf.float32, [None, 1, row_size], name="ic") # word of vc
 input_q = tf.placeholder(tf.float32, [None, 1, row_size], name="iq") # word of vq
@@ -53,9 +46,7 @@ input_r = tf.placeholder(tf.float32, [None, ans_len, row_size], name="ir")
 input_w = tf.placeholder(tf.float32, [None, ans_len, row_size], name="iw")
 state = tf.placeholder(tf.float32, [None, row_size], name="state")
 dropout = tf.placeholder(tf.float32, name="dropout")
-model = GRUModel(input_c, input_q, input_r, input_w, state, dropout, num_hidden=vec_len)
 
-# prepare random data for unused placeholders
 zero_parah = np.random.randn(1, row_size)
 zero_input = np.random.randn(ans_len, row_size)
 zero_state = np.random.randn(row_size)
@@ -67,16 +58,12 @@ batch_zero_parah = create_batch(zero_parah, batch_size)
 batch_zero_input = create_batch(zero_input, batch_size)
 batch_zero_state = create_batch(zero_state, batch_size)
 
-def pad_zero(vv, max_len):
-    if max_len < len(vv):
-        return vv
-    vv += [[0] * vec_len] * (max_len - len(vv))
-    return vv
+costs = []
 
-va = [pad_zero(x, ans_len) for x in va]
-vl = [[pad_zero(y, ans_len) for y in x] for x in vl]
+sess = tf.Session()
+model = GRUModel(input_c, input_q, input_r, input_w, state, dropout, num_hidden=vec_len)
+model.load(sess, save_dir='save', dataset=dataset)
 
-# Train Model
 # ==================================================
 def encode(v, q):
     prev = batch_zero_state
@@ -94,63 +81,45 @@ def encode(v, q):
             })
     return prev
 
+def pad_zero(vv, max_len):
+    if max_len < len(vv):
+        return vv
+    vv += [[0] * vec_len] * (max_len - len(vv))
+    return vv
+
+vl = [[pad_zero(y, ans_len) for y in x] for x in vl]
+
+
+# ==================================================
 print('Running Model...')
 print('= Drop Probability: %f' % drop_prob)
 print('= Batch Size: %d' % batch_size)
 print('= Max Epoch: %d' % max_epoch)
 
-sess = tf.Session()
-try: sess.run(tf.global_variables_initializer())
-except: sess.run(tf.initialize_all_variables())
-print("Initialized. Start training...")
+n_correct1 = 0
+n_correct2 = 0
 
-try:
-    costs = []
-    for epoch in tqdm(range(max_epoch)):
+for i in range(set_len):
+    sims = []
+    truth = int(aa[i])
+    batch_cq = encode(vc[i], vq[i])
 
-        shuf_idx = np.random.permutation(np.arange(set_len))
-        vq = [vq[i] for i in shuf_idx]
-        vc = [vc[i] for i in shuf_idx]
-        va = [va[i] for i in shuf_idx]
-        vl = [vl[i] for i in shuf_idx]
-        print('Data shuffled, start epoch.')
+    for opt in vl[i]:
+        batch_ir = create_batch(opt, batch_size)
+        sims.append(sess.run(model.evaluate, {
+            input_c: batch_zero_parah,
+            input_q: batch_zero_parah,
+            input_r: batch_ir,
+            input_w: batch_ir,
+            state: batch_cq,
+            dropout: 1
+        }))
+    guess1 = sims.index(min(sims))
+    guess2 = sims.index(max(sims))
+    print('[{:d}] guess: {:d}, guess2: {:d}, truth: {:d}, sims:'.format(i+1, guess1, guess2, truth))
+    if guess1 == truth: n_correct1 += 1
+    if guess2 == truth: n_correct2 += 1
+    print(sims)
 
-        assert len(vq) == len(vc) == len(vl) == len(va) == set_len
-
-        for i in tqdm(range(set_len)):
-            batch_cq = encode(vc[i], vq[i])
-            batch_ir = create_batch(va[i], batch_size)
-            for opt in vl[i]:
-                if opt != va[i]:
-                    batch_iw = create_batch(opt, batch_size)
-                    sess.run(model.optimize, {
-                        input_c: batch_zero_parah,
-                        input_q: batch_zero_parah,
-                        input_r: batch_ir,
-                        input_w: batch_iw,
-                        state:   batch_cq,
-                        dropout: drop_prob
-                    })
-            # evaluate on training data
-            if (i + 1) % 100 == 0:
-                error = sess.run(model.cosine_cost, {
-                    input_c: batch_zero_parah,
-                    input_q: batch_zero_parah,
-                    input_r: batch_ir,
-                    input_w: batch_iw,
-                    state: batch_cq,
-                    dropout: 1
-                })
-                costs.append(error)
-                print('=> cosine cost {:3.5f}, mean cost: {:3.5f}'.format(error, sum(costs) / len(costs)))
-            # autosave
-            if (i + 1) % 1000 == 0:
-                model.save(sess, save_dir='save', dataset=dataset)
-
-except KeyboardInterrupt:
-    pass
-
-# ensure model is saved.
-model.save(sess, save_dir='save', dataset=dataset)
-
-print('Done.')
+print('Guess1: {:2.2f}%'.format(n_correct1 * 100 / set_len))
+print('Guess2: {:2.2f}%'.format(n_correct2 * 100 / set_len))
