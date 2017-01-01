@@ -7,6 +7,8 @@ import preprocess
 from model import GRUModel
 from tensorflow.contrib import learn
 
+from tqdm import tqdm
+
 from config import *
 
 print("Loading text data...")
@@ -92,14 +94,14 @@ vl = [[pad_zero(y, ans_len) for y in x] for x in vl]
 
 # ==================================================
 print('Running Model...')
-print('= Drop Probability: %f' % drop_prob)
+print('= Drop Probability: %1.2f' % drop_prob)
 print('= Batch Size: %d' % batch_size)
 print('= Max Epoch: %d' % max_epoch)
 
 n_correct1 = 0
 n_correct2 = 0
 
-for i in range(set_len):
+for i in tqdm(range(300)):
     sims = []
     truth = int(aa[i])
     batch_cq = encode(vc[i], vq[i])
@@ -114,12 +116,12 @@ for i in range(set_len):
             state: batch_cq,
             dropout: 1
         }))
+    sims = [x-np.floor(sims[0]) for x in sims]
     guess1 = sims.index(min(sims))
     guess2 = sims.index(max(sims))
-    print('[{:d}] guess: {:d}, guess2: {:d}, truth: {:d}, sims:'.format(i+1, guess1, guess2, truth))
     if guess1 == truth: n_correct1 += 1
     if guess2 == truth: n_correct2 += 1
-    print(sims)
+    print('[{:3d}] guess: {:d}, guess2: {:d}, truth: {:d}, {:3d}, {:3d}, sims:'.format(i+1, guess1, guess2, truth, n_correct1, n_correct2), sims)
 
-print('Guess1: {:2.2f}%'.format(n_correct1 * 100 / set_len))
-print('Guess2: {:2.2f}%'.format(n_correct2 * 100 / set_len))
+print('Guess1: {:2.2f}%'.format(n_correct1 * 100 / 300))
+print('Guess2: {:2.2f}%'.format(n_correct2 * 100 / 300))

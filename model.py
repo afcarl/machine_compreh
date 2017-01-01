@@ -4,7 +4,7 @@ import sets
 import tensorflow as tf
 
 from config import *
-MARGIN = batch_size * 2 + 0.2
+MARGIN = 1.2
 
 def lazy_property(function):
     attribute = '_' + function.__name__
@@ -34,7 +34,7 @@ class GRUModel:
     @lazy_property
     def prediction(self):
         '''return embedded context & question vector, merged into one output'''
-        cell = tf.nn.rnn_cell.LSTMCell(self._num_hidden)
+        cell = tf.nn.rnn_cell.GRUCell(self._num_hidden)
         network = tf.nn.rnn_cell.MultiRNNCell([cell] * self._num_layers)
         # embed context & question
         with tf.variable_scope('iq'):
@@ -48,7 +48,7 @@ class GRUModel:
         lc = tf.gather(oc, int(oc.get_shape()[0]) - 1)
         # combine embedding for question & context
         weight, bias = self._weight_and_bias(
-            self._num_hidden, int(self.iq.get_shape()[2]))
+           self._num_hidden, int(self.iq.get_shape()[2]))
         return lq + tf.matmul(lc, weight) + bias
 
     @lazy_property
@@ -71,8 +71,8 @@ class GRUModel:
     def cosine_cost(self):
         '''cosine distance as cost function'''
         r, w = self.answer
-        return tf.reduce_mean(tf.maximum( # normailize with batch_size so don't have to change learning rate 
-            0., MARGIN - self.cos_sim(self.state, r) + self.cos_sim(self.state, w))) / batch_size * 10
+        return tf.reduce_mean(tf.maximum(
+            0., MARGIN - self.cos_sim(self.state, r) + self.cos_sim(self.state, w)))
 
     @lazy_property
     def optimize(self):
@@ -83,8 +83,7 @@ class GRUModel:
     def evaluate(self):
         '''evaluate cosine similarity of an answer option'''
         opt1, opt2 = self.answer
-        # return self.cos_sim(self.state, opt1) - self.cos_sim(self.state, opt2)
-        return self.cos_sim(self.state, opt1) / batch_size * 10 - self.cos_sim(self.state, opt2) / batch_size * 10
+        return self.cos_sim(self.state, opt1) - self.cos_sim(self.state, opt2)
 
     def cos_sim(self, x, y):
         '''cosine similarity between 2D tensors x, y, both shape [n x m]'''
@@ -93,7 +92,7 @@ class GRUModel:
             norm = tf.sqrt(tf.reduce_sum(tf.square(x), keep_dims=True, reduction_indices=1))
             return tf.div(x, norm)
         x = l2_norm(x); y = l2_norm(y)
-        return tf.reduce_sum(tf.mul(x, y))
+        return tf.reduce_mean(l2_norm(tf.matmul(x, y, transpose_a=True)))
 
     @staticmethod
     def _weight_and_bias(in_size, out_size):
@@ -107,7 +106,7 @@ class GRUModel:
         save_dir = os.path.join(save_dir, dataset)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        self.saver.save(sess, 
+        self.saver.save(sess,
             os.path.join(save_dir, dataset))
         print(" [*] Checkpoints saved...")
 
