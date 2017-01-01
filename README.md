@@ -49,6 +49,3 @@ I improved the model with glove word embeddings, result has not been studied.
 6. [Official Tensorflow Tutorials](https://www.tensorflow.org/versions/r0.12/tutorials/index.html)
 7. [Tensorflow Doc(中文)](http://wiki.jikexueyuan.com/project/tensorflow-zh/get_started/basic_usage.html)
 
-# Design
-
-![Algorithm](./docs/tf_algorithm.png)
