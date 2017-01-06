@@ -66,7 +66,7 @@ class Sentence(object):
 
 def read_glove(words):
     vec = {}
-    with open(os.getenv('HOME') + '/data/glove/glove.6B.50d.txt') as f:
+    with open(os.getenv('HOME') + '/data/glove/glove.6B.300d.txt') as f:
         for x in f.readlines():
             vv = x.split()
             if vv[0] in words:
