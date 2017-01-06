@@ -1,14 +1,17 @@
 # Description
 
+The model achieved 30% correctness on SQUAD and 35% on TOFEL.
+
 Read articles and make multiple choices now can be done with machine. The project consists of two models. The impatient reader model in [1] comprehends very long articles and a related question. A cosine similarity cost model from [5] to choose best answer from four options. I implemented the model in [TensorFlow](https://github.com/tensorflow/tensorflow). Both used GRU cell for deep RNNs.
 
 The training set consists of a context, a question, and four multiple choices, with only one of them is true. Context was splitted into sentences, embedded into a vector with the question. The embedded vector and choices are later calculated using cosine similarity. The non-supervisual target is to minimize cosine cost.
 
-Instead of simply solving [cloze-like questions](https://en.wikipedia.org/wiki/Cloze_test), the model can comprehend both article and a related question, and choose the best answer from a list of candidates. But the project compared to real research project like [bidirectional attetion flow for machine comprehension](https://arxiv.org/pdf/1611.01603v3.pdf), we lack the deep-lstm decoder, and we lack word embeddings (they have over 400x400 vectors for each word, we have 400xn cells for a sentence!), and we only used one encoder for context and question while they have two (from context to question, and from question to context).
+Instead of simply solving [cloze-like questions](https://en.wikipedia.org/wiki/Cloze_test), the model can comprehend both article and a related question, and choose the best answer from a list of candidates.
 
 ```shell
 python3 train.py # 2.7 goes well too
-python3 test.py
+python3 valid.py # run on validation set
+python3 test.py # run on test set
 ```
 # Train Set
 
@@ -33,11 +36,9 @@ python3 test.py
 
 # Evaluation
 
-Trained with default setups and best achieved 35% correct rate. This didn't overperform even [Logistic Regression Baseline](https://rajpurkar.github.io/SQuAD-explorer/) which scores 40.4% correct rate. I wasn't aware of the state-of-art models until I finished this project. The problem for our project is that we encoded sentences instead of with finer grains (usually are word-level). And I think cosine similarity is too simple for classification, since even the logistic regression baseline used 180 million features, which is hard to imagine can be handled by a shallow model.
+Original model was trained with default setups and best achieved 30% correct rate. This didn't overperform even [Logistic Regression Baseline](https://rajpurkar.github.io/SQuAD-explorer/) which scores 40.4% correct rate. I wasn't aware of the state-of-art models.
 
-![Costs](./docs/cosine_cost.png)
-
-I improved the model with glove word embeddings, result has not been studied.
+After applying pretrained word embedding, the model achived 30% on SQUAD and 35% accuracy on TOFEL.
 
 # References
 
